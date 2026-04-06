@@ -1,5 +1,4 @@
-# Stage 1: Build stage (not used here as we build with Maven in Jenkins)
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-jammy
 
 # Set working directory
 WORKDIR /app
