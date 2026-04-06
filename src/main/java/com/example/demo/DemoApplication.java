@@ -15,11 +15,16 @@ public class DemoApplication {
 
     @GetMapping("/")
     public String home() {
-        return "✅ CI/CD Pipeline Successful! Application Version: 1.0.0";
+        return "🚀 CI/CD Pipeline V2.0 - Rolling Update Successful!";
     }
 
     @GetMapping("/health")
     public String health() {
         return "OK";
+    }
+    
+    @GetMapping("/version")
+    public String version() {
+        return "Version 2.0.0";
     }
 }
