@@ -22,7 +22,7 @@ public class DemoApplication {
     public String health() {
         return "OK";
     }
-    
+
     @GetMapping("/version")
     public String version() {
         return "Version 2.0.0";
