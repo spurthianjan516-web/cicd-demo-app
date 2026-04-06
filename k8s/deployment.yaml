@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: cicd-demo-app
-        image: cicd-demo-app:latest
-        imagePullPolicy: IfNotPresent
+        image: cicd-demo-app:BUILD_NUMBER
+        imagePullPolicy: Never
         ports:
         - containerPort: 8080
         livenessProbe:

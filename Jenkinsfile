@@ -18,35 +18,15 @@ pipeline {
             steps {
                 script {
                     echo "=== Validating Conventional Commit Message ==="
-                    
-                    // Get the last commit message
                     def commitMessage = sh(
                         script: 'git log -1 --pretty=%B',
                         returnStdout: true
                     ).trim()
-                    
                     echo "Commit Message: ${commitMessage}"
-                    
-                    // Conventional commit pattern
                     def pattern = /^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?!?: .{1,100}/
-                    
                     if (!(commitMessage =~ pattern)) {
-                        error """
-                        ❌ Invalid commit message format!
-                        
-                        Expected format: <type>(<scope>): <subject>
-                        
-                        Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
-                        
-                        Examples:
-                        - feat: add user authentication
-                        - fix(api): resolve null pointer exception
-                        - docs: update README with setup instructions
-                        
-                        Your commit: ${commitMessage}
-                        """
+                        error "❌ Invalid commit message format!\nExpected: <type>(<scope>): <subject>\nYour commit: ${commitMessage}"
                     }
-                    
                     echo "✅ Commit message is valid"
                 }
             }
@@ -93,20 +73,20 @@ pipeline {
             steps {
                 script {
                     echo "=== Deploying to Kubernetes ==="
-                    
-                    // Update deployment with new image tag
-                    sh """
-                        sed -i 's|image: cicd-demo-app:BUILD_NUMBER|image: ${DOCKER_IMAGE}|g' k8s/deployment.yaml
-                        cat k8s/deployment.yaml
-                    """
-                    
-                    // Apply Kubernetes manifests
+
+                    // Apply manifests first time, then update image
                     sh """
                         kubectl apply -f k8s/deployment.yaml
                         kubectl apply -f k8s/service.yaml
                     """
-                    
-                    echo "✅ Deployment applied"
+
+                    // ✅ Use kubectl set image instead of sed (permanent fix!)
+                    sh """
+                        kubectl set image deployment/${APP_NAME} \
+                        ${APP_NAME}=${DOCKER_IMAGE}
+                    """
+
+                    echo "✅ Deployment updated with image: ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -115,11 +95,7 @@ pipeline {
             steps {
                 script {
                     echo "=== Verifying Deployment ==="
-                    
-                    // Wait for rollout to complete
                     sh "kubectl rollout status deployment/${APP_NAME} --timeout=300s"
-                    
-                    // Get deployment info
                     sh """
                         echo "=== Pods ==="
                         kubectl get pods -l app=${APP_NAME}
@@ -130,7 +106,6 @@ pipeline {
                         echo "=== Deployment ==="
                         kubectl get deployment ${APP_NAME}
                     """
-                    
                     echo "✅ Deployment verified successfully"
                 }
             }
@@ -139,28 +114,18 @@ pipeline {
         stage('🌐 Get Access URL') {
             steps {
                 script {
-                    echo "=== Application Access Information ==="
-                    
                     def nodeIP = sh(
                         script: "kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}'",
                         returnStdout: true
                     ).trim()
-                    
                     echo """
-                    ╔════════════════════════════════════════════════════════════╗
-                    ║          🎉 DEPLOYMENT SUCCESSFUL 🎉                       ║
-                    ╠════════════════════════════════════════════════════════════╣
-                    ║                                                            ║
-                    ║  Application URL (from EC2):                               ║
-                    ║  http://${nodeIP}:30080                                    ║
-                    ║                                                            ║
-                    ║  Application URL (from browser):                           ║
-                    ║  http://YOUR_EC2_PUBLIC_IP:30080                           ║
-                    ║                                                            ║
-                    ║  Test command:                                             ║
-                    ║  curl http://${nodeIP}:30080                               ║
-                    ║                                                            ║
-                    ╚════════════════════════════════════════════════════════════╝
+                    ╔══════════════════════════════════════════╗
+                    ║      🎉 DEPLOYMENT SUCCESSFUL 🎉          ║
+                    ╠══════════════════════════════════════════╣
+                    ║  curl http://${nodeIP}:30080              ║
+                    ║  curl http://${nodeIP}:30080/version      ║
+                    ║  curl http://${nodeIP}:30080/health       ║
+                    ╚══════════════════════════════════════════╝
                     """
                 }
             }
